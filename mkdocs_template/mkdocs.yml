@@ -1,0 +1,4 @@
+site_name: Beautiful Documentation Sample
+theme: readthedocs
+repo_url: https://github.com/steviecoaster/BeautifulDocs
+docs_dir: ../docs/
