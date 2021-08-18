@@ -48,7 +48,7 @@ process {
         $MkDocsPublish {
             $mkDocsRoot = Join-Path $root 'mkdocs_template'
             Push-Location $mkDocsRoot
-            $mkDocsArgs = @('gh-deploy')
+            $mkDocsArgs = @('build')
 
             & mkdocs @mkDocsArgs
         }
