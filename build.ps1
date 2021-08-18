@@ -13,6 +13,10 @@ param(
     $MkDocsPublish,
 
     [Parameter()]
+    [Switch]
+    $GHPages,
+
+    [Parameter()]
     [string]
     $SemVer = $(
         if (Get-Command gitversion -ErrorAction SilentlyContinue) {
@@ -51,6 +55,18 @@ process {
             $mkDocsArgs = @('build')
 
             & mkdocs @mkDocsArgs
+        }
+
+        $GHPages {
+            # Write your PowerShell commands here.
+            git config --global user.name 'Stephen Valdinger'
+            git config --global user.email 'stephen@chocolatey.io'
+            git remote rm origin
+            $url = 'https://steviecoaster:' + $env:GH_TOKEN + '@github.com/steviecoaster/BeautifulDocs.git'
+            git remote add origin $url
+
+            Set-Location .\mkdocs_template
+            mkdocs gh-deploy --force
         }
 
     }
