@@ -6,7 +6,7 @@ param(
     
     [Parameter()]
     [Switch]
-    $TestPrePublish,
+    $WriteMdDocs,
 
     [Parameter()]
     [Switch]
@@ -40,12 +40,16 @@ process {
             Build-Module -SemVer $SemVer
         }
 
-        $TestPrePublish {
+        $WriteMdDocs {
             if (Test-Path $root\Output\BeautifulDocs) {
                 if ($env:PSModulePath.Split(';') -notcontains "$root\Output") {
                     $env:PSModulePath = "$root\Output;$env:PSModulePath"
                 }
-                Import-Module BeautifulDocs
+                Import-Module BeautifulDocs -Force
+                Import-Module PlatyPS -Force
+
+                New-MarkdownHelp -Module BeautifulDocs -OutputFolder $root\docs
+
             }
 
             $TestArguments = @{
