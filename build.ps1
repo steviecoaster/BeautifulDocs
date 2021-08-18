@@ -10,15 +10,7 @@ param(
 
     [Parameter()]
     [Switch]
-    $TestPostPublish,
-
-    [Parameter()]
-    [Switch]
-    $DeployToGallery,
-
-    [Parameter()]
-    [Switch]
-    $Choco,
+    $MkDocsPublish,
 
     [Parameter()]
     [string]
@@ -51,50 +43,15 @@ process {
                 New-MarkdownHelp -Module BeautifulDocs -OutputFolder $root\docs
 
             }
-
-            $TestArguments = @{
-                Path                   = "$root\tests"
-
-                OutputFile             = "$root\TestResults.xml"
-                OutputFormat           = "JUnitXml"
-                
-                CodeCoverage           = (Get-ChildItem $root\Output\BeautifulDocs -Recurse -Filter '*.ps*1').FullName
-                CodeCoverageOutputFile = "$root\Coverage.xml"
-            }
-
-            if (Test-Path $TestArguments.Path) {
-                Invoke-Pester @TestArguments
-            }
         }
 
-        $TestPostPublish {
-            Install-Module BeautifulDocs -Force
-            Import-Module PoshBot -Force
+        $MkDocsPublish {
+            $mkDocsRoot = Join-Path $root 'mkdocs_template'
+            Push-Location $mkDocsRoot
+            $mkDocsArgs = @('gh-deploy')
 
-            Invoke-Pester "$root\tests\*.ps1"
+            & mkdocs @mkDocsArgs
         }
 
-        $DeployToGallery {
-            Publish-Module -Path "$root\Output\BeautifulDocs" -NuGetApiKey $env:NugetApiKey
-        }
-
-        $Choco {
-            $PackageSource = Join-Path $root "src\nuget"
-
-            $Nuspec = Get-ChildItem $PackageSource -recurse -filter *.nuspec
-
-            Copy-Item -Path $root\LICENSE -Destination $PackageSource
-            Compress-Archive -Path $root\Output\* -DestinationPath $PackageSource\tools\BeautifulDocs.zip -Force #Added force to allow local testing without shenanigans
-
-            if (Test-Path "$PackageSource\tools\BeautifulDocs.zip") {
-                choco pack $Nuspec.FullName --output-directory $root
-            } else {
-                throw "Welp, ya need the zip in the tools folder, dumby"
-            }
-
-            Get-ChildItem $PackageSource -recurse -filter *.nupkg | ForEach-Object { 
-                choco push $_.FullName -s https://push.chocolatey.org --api-key="'$($env:ChocoApiKey)'"
-            }
-        }
     }
 }
