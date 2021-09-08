@@ -1,0 +1,73 @@
+pool:
+  name: Azure Pipelines
+  vmImage: vs2017-win2016
+
+steps:
+- powershell: |
+
+   Install-Module ModuleBuilder -MinimumVersion 2.0.0 -MaximumVersion 3.0 -SkipPublisherCheck -AllowClobber -Force
+   
+  displayName: 'Install ModuleBuilder'
+  condition: succeededOrFailed()
+
+- powershell: |
+   if (-not (Get-Command gitversion -ErrorAction SilentlyContinue)) {
+       # We use GitVersion to generate the version based on history in source control
+       $cArgs = @('install','gitversion','-y',"--source='https://community.chocolatey.org/api/v2'",'--no-progress')
+       choco @cArgs
+   }
+   
+   if(-not (Get-Command mkdocs -ErrorAction SilentlyContinue)) {
+       $cArgs = @('install','mkdocs','-y',"--source='https://community.chocolatey.org/api/v2'", '--no-progress')
+       choco @cArgs
+   }
+   
+   $cArgs = @('install','platyps','-y',"--source='https://community.chocolatey.org/api/v2'", '--no-progress')
+       choco @cArgs
+  displayName: 'Get Choco Package Pre-reqs'
+
+- task: gittools.gittools.setup-gitversion-task.gitversion/setup@0
+  displayName: gitversion/setup
+  inputs:
+    versionSpec: 5.x
+
+- task: gittools.gittools.execute-gitversion-task.gitversion/execute@0
+  displayName: 'Determine SemVer'
+  inputs:
+    useConfigFile: true
+    configFilePath: GitVersion.yml
+
+- task: PowerShell@2
+  displayName: 'Build the Module'
+  inputs:
+    targetType: filePath
+    filePath: ./build.ps1
+    arguments: '-Build -Semver $(GitVersion.LegacySemVerPadded)'
+
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Module Artifact'
+  inputs:
+    artifact: 'BeautifulDocs.$(GitVersion.LegacySemVerPadded)'
+
+- task: PowerShell@2
+  displayName: 'PlatyPS - Generate Markdown from CBH'
+  inputs:
+    targetType: filePath
+    filePath: ./build.ps1
+    arguments: '-WriteMdDocs'
+
+- task: PowerShell@2
+  displayName: 'MkDocs - Build the Site'
+  inputs:
+    targetType: filePath
+    filePath: ./build.ps1
+    arguments: '-MkDocsPublish'
+
+- task: PowerShell@2
+  displayName: 'Publish GH Pages'
+  inputs:
+    targetType: filePath
+    filePath: ./build.ps1
+    arguments: '-GHPages'
+  env:
+    GH_TOKEN: $(GH_TOKEN)
