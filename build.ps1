@@ -54,7 +54,7 @@ process {
             Push-Location $mkDocsRoot
             $mkDocsArgs = @('build')
 
-            & mkdocs @mkDocsArgs
+            & 'C:\Python39\Scripts\mkdocs.exe' @mkDocsArgs
         }
 
         $GHPages {
@@ -65,8 +65,10 @@ process {
             $url = 'https://steviecoaster:' + $env:GH_TOKEN + '@github.com/steviecoaster/BeautifulDocs.git'
             git remote add origin $url
 
+            $mkDocsArgs = @('gh-deploy','--force')
+
             Set-Location .\mkdocs_template
-            mkdocs gh-deploy --force
+            & 'C:\Python39\Scripts\mkdocs.exe' @mkDocsArgs
         }
 
     }
